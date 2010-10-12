@@ -1,4 +1,4 @@
-## Interface: 30200
+## Interface: 40000
 ## Title: Crybaby
 ## Notes: Complain about crowd control breaks.
 ## Author: durcyn

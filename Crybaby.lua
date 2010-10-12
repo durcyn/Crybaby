@@ -29,12 +29,12 @@ local cc = {
 	(GetSpellInfo(6770)), -- 6770 Sap
 	(GetSpellInfo(20066)), -- 20066 Repentance
 	(GetSpellInfo(51514)), -- 51514 Hex
+	(GetSpellInfo(76780)), -- 76780 Bind Elemental
 	}
 
 local md = {
 	(GetSpellInfo(34477)), -- 34477 Misdirection
 	(GetSpellInfo(57934)), -- 57934 Tricks of the Trade
-	(GetSpellInfo(49016)), -- 49016 Hysteria
 	}
 
 local defaults = {
