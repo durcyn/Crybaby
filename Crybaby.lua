@@ -23,8 +23,7 @@ local cc = {
 	(GetSpellInfo(118)), -- 118 Polymorph
 	(GetSpellInfo(9484)), -- 9484 Shackle Undead
 	(GetSpellInfo(2637)), -- 2637 Hibernate
-	(GetSpellInfo(14309)), -- 14309 Freezing Trap Effect
-	(GetSpellInfo(60210)), -- 60210 Freezing Arrow Effect
+	(GetSpellInfo(70794)), -- 70794 Freezing Trap Effect
 	(GetSpellInfo(6358)), -- 6358 Seduction
 	(GetSpellInfo(6770)), -- 6770 Sap
 	(GetSpellInfo(20066)), -- 20066 Repentance
@@ -34,6 +33,7 @@ local cc = {
 
 local md = {
 	(GetSpellInfo(34477)), -- 34477 Misdirection
+	(GetSpellInfo(49016)), -- 57934 Unholy Frenzy
 	(GetSpellInfo(57934)), -- 57934 Tricks of the Trade
 	}
 
