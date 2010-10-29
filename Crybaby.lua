@@ -20,7 +20,7 @@ local friendly = _G.COMBATLOG_OBJECT_REACTION_FRIENDLY
 local outsider = _G.COMBATLOG_OBJECT_AFFILIATION_OUTSIDER
 
 local cc = {
-	(GetSpellInfo(118)), -- 118 Polymorph
+	(GetSpellInfo(28271)), -- 28271 Polymorph
 	(GetSpellInfo(9484)), -- 9484 Shackle Undead
 	(GetSpellInfo(2637)), -- 2637 Hibernate
 	(GetSpellInfo(70794)), -- 70794 Freezing Trap Effect
