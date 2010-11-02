@@ -23,7 +23,7 @@ local cc = {
 	(GetSpellInfo(28271)), -- 28271 Polymorph
 	(GetSpellInfo(9484)), -- 9484 Shackle Undead
 	(GetSpellInfo(2637)), -- 2637 Hibernate
-	(GetSpellInfo(70794)), -- 70794 Freezing Trap Effect
+	(GetSpellInfo(3355)), -- 3355 Freezing Trap 
 	(GetSpellInfo(6358)), -- 6358 Seduction
 	(GetSpellInfo(6770)), -- 6770 Sap
 	(GetSpellInfo(20066)), -- 20066 Repentance
