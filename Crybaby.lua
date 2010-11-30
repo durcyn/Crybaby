@@ -20,12 +20,17 @@ local friendly = _G.COMBATLOG_OBJECT_REACTION_FRIENDLY
 local outsider = _G.COMBATLOG_OBJECT_AFFILIATION_OUTSIDER
 
 local cc = {
-	(GetSpellInfo(28271)), -- 28271 Polymorph
-	(GetSpellInfo(9484)), -- 9484 Shackle Undead
-	(GetSpellInfo(2637)), -- 2637 Hibernate
-	(GetSpellInfo(3355)), -- 3355 Freezing Trap 
-	(GetSpellInfo(6358)), -- 6358 Seduction
-	(GetSpellInfo(6770)), -- 6770 Sap
+	(GetSpellInfo(118)),   -- 118   Polymorph
+	(GetSpellInfo(61305)), -- 61305 Polymorph: Black Cat
+	(GetSpellInfo(28272)), -- 28272 Polymorph: Pig
+	(GetSpellInfo(61721)), -- 61721 Polymorph: Rabbit
+	(GetSpellInfo(61780)), -- 61780 Polymorph: Turkey (not on live yet, not used by turkey shooter either)
+	(GetSpellInfo(28271)), -- 28271 Polymorph: Turtle
+	(GetSpellInfo(9484)),  -- 9484  Shackle Undead
+	(GetSpellInfo(2637)),  -- 2637  Hibernate
+	(GetSpellInfo(3355)),  -- 3355  Freezing Trap
+	(GetSpellInfo(6358)),  -- 6358  Seduction
+	(GetSpellInfo(6770)),  -- 6770  Sap
 	(GetSpellInfo(20066)), -- 20066 Repentance
 	(GetSpellInfo(51514)), -- 51514 Hex
 	(GetSpellInfo(76780)), -- 76780 Bind Elemental
