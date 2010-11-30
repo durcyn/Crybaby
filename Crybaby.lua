@@ -55,6 +55,8 @@ local options = {
 			name = L["Spells"],
 			desc = L["Toggle spell notifications"],
 			order = 20,
+			get = function (i) return db.spells[i[#i]] end,
+			set = function (i,v) db.spells[i[#i]] = v end,
 			args = {},
 		},
 	},
@@ -65,8 +67,6 @@ for _,k in ipairs(cc) do
 	options.args.spells.args[k] = {
 		type = "toggle",
 		name = k,
-		get = function () return db.spells[k] end,
-		set = function (i,v) db.spells[k] = v end,
 	}
 end
 
@@ -75,8 +75,6 @@ for _,k in ipairs(md) do
 	options.args.spells.args[k] = {
 		type = "toggle",
 		name = k,
-		get = function () return db.spells[k] end,
-		set = function (i,v) db.spells[k] = v end,
 	}
 end
 
@@ -84,6 +82,7 @@ end
 local getcolor, geticon
 do
 	function getcolor(name)
+		if type(name) ~= 'string' then return end
 		local _, class = UnitClass(name)
 		local color = class and _G["RAID_CLASS_COLORS"][class]
 		local hex = color and format("|cff%02x%02x%02x", color.r*255, color.g*255, color.b*255)
@@ -95,6 +94,7 @@ do
 	local rt1 = _G.COMBATLOG_OBJECT_RAIDTARGET1
 	local rtmask = _G.COMBATLOG_OBJECT_SPECIAL_MASK
 	function geticon(flag)
+		if flag == nil then return end
 		local output
 		local number 
 
@@ -154,11 +154,12 @@ function Crybaby:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, subevent, srcGUID
 		if band(dstFlags, outsider) == 0 then
 			for k,v in ipairs(md) do
 				if v == spell and db.spells[spell] then
+					local target = dst or L["Unknown"]
 					local srccolor = getcolor(src) or red
 					local dstcolor = getcolor(dst) or green
 					local srcicon = geticon(srcFlags) or ""
 					local dsticon = geticon(dstFlags) or ""
-					self:Pour(L["md"]:format(srcicon, srccolor, src, spell, dsticon, dstcolor, dst))
+					self:Pour(L["md"]:format(srcicon, srccolor, src, spell, dsticon, dstcolor, target))
 				end
 			end
 		end
