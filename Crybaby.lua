@@ -1,12 +1,15 @@
 local _G = getfenv(0)
 local LibStub = _G.LibStub
-local Crybaby = LibStub("AceAddon-3.0"):NewAddon("Crybaby", "AceConsole-3.0", "AceEvent-3.0", "LibSink-2.0")
+local Crybaby = LibStub("AceAddon-3.0"):NewAddon("Crybaby", "AceConsole-3.0", "AceEvent-3.0")
 local L = LibStub("AceLocale-3.0"):GetLocale("Crybaby")
+local AceConfig = LibStub("AceConfigRegistry-3.0")
+local LibSink = LibStub("LibSink-2.0")
 local db
 
 local band = _G.bit.band
-local ipairs = _G.ipairs
+local pairs, ipairs = _G.pairs, _G.ipairs
 local format = _G.string.format
+local twipe = _G.table.wipe
 
 local GetSpellInfo = _G.GetSpellInfo
 local UnitClass = _G.UnitClass
@@ -40,31 +43,159 @@ local md = {
 local defaults = {
 	profile = {
 		spells = {},
-		sinkOptions = {
+		tanks = {},
+		all_local = false,
+		report_cc = false,
+		report_other = false,
+		tankroles = true,
+		sinkOptionsCC = {
+			sink20OutputSink = "ChatFrame",
+		},
+		sinkOptionsOther = {
 			sink20OutputSink = "ChatFrame",
 		},
 	},
 }
 
+
+-- Distinguishing CC and MD/other output settings.  LibSink requires client
+-- "addons" to be of table type, but makes no use of any of their fields (with
+-- one uninteresting exception).  Since the tables here merely need to be unique
+-- pointers, choose some arbitrary existing ones rather then creating needless
+-- empty ones.
+local tagCC, tagOther = defaults.profile.sinkOptionsCC, defaults.profile.sinkOptionsOther
+
+local build_tank_values
+do
+	local visual = {}
+	function build_tank_values()
+		twipe(visual)
+		for name in pairs(db.tanks) do
+			visual[name] = name
+		end
+		return visual
+	end
+end
+
+local function getoption (info)
+	local name = info[#info]
+	return db[name]
+end
+
+local function setoption (info, value)
+	local name = info[#info]
+	db[name] = value
+	local arg = info.arg
+	--if arg then self[arg](self) end
+end
+
 local options = {
 	type = 'group',
 	args = {
-		output = Crybaby:GetSinkAce3OptionsDataTable(),
-		spells = {
+		all_local = {
+			type = "toggle",
+			name = L["Local Output"],
+			desc = L["Always print output to the local chat window, in addition to anything set in the Output sections."],
+			order = 5,
+			get = getoption,
+			set = setoption,
+		},
+		report_cc = {
+			type = "toggle",
+			name = L["Report CC Breakage"],
+			desc = L["Report breaking crowd control effects, as controlled by the Output section."],
+			order = 10,
+			get = getoption,
+			set = setoption,
+		},
+		report_other = {
+			type = "toggle",
+			name = L["Report Other"],
+			desc = L["Report other spell effects, as controlled by the Output section."],
+			order = 15,
+			get = getoption,
+			set = setoption,
+		},
+		spells_cc = {
 			type = 'group',
-			name = L["Spells"],
+			name = L["CC Spells"],
 			desc = L["Toggle spell notifications"],
 			order = 20,
 			get = function (i) return db.spells[i[#i]] end,
 			set = function (i,v) db.spells[i[#i]] = v end,
-			args = {},
+			args = {
+				output = LibSink.GetSinkAce3OptionsDataTable(tagCC),
+				tanks = {
+					type = 'group',
+					name = L["Tanks"],
+					desc = L["Who should NOT be reported for breaking crowd control."],
+					order = 30,
+					args = {
+						role = {
+							type = 'toggle',
+							name = L["Include tank role"],
+							desc = 'NOT IMPLEMENTED YET. ' .. L["Automatically include players marked with a tank role"],
+							order = 1,
+							get = function() return db.tankroles end,
+							set = function(i,v) db.tankroles = v end,
+							hidden=true,disabled=true,
+						},
+						linebreak = {
+							name = '',
+							type = 'description',
+							cmdHidden = true,
+							width = 'full',
+							order = 9,
+						},
+						tankadd = {
+							type = 'input',
+							name = L["Add Tank"],
+							desc = L["Names of characters who should not be reported for breaking CC."],
+							dialogControl = 'EditBoxRaidMembers',
+							order = 10,
+							get = false,
+							set = function(i,key) db.tanks[key] = true; AceConfig:NotifyChange("Crybaby") end,
+						},
+						tankremove = {
+							type = 'select',
+							name = function()
+								local n = 0
+								for _ in next, db.tanks do n=n+1 end
+								return L["Remove Tank"]:format(n)
+							end,
+							desc = L["Click a name to remove them from the special tank-exception list."],
+							style = 'dropdown',
+							order = 11,
+							values = function() return build_tank_values() end,
+							get = false,
+							set = function(i,key) db.tanks[key] = nil; AceConfig:NotifyChange("Crybaby") end,
+						},
+					},
+				},
+			},
+		},
+		spells_other = {
+			type = 'group',
+			name = L["Other Spells"],
+			desc = L["Toggle spell notifications"],
+			order = 30,
+			args = {
+				output = LibSink.GetSinkAce3OptionsDataTable(tagOther),
+			},
 		},
 	},
 }
 
+options.args.spells_other.get = options.args.spells_cc.get
+options.args.spells_other.set = options.args.spells_cc.set
+
+-- Splitting these out so that CC settings don't affect MD printing, etc.
+local check_for_cc, check_for_other = {}, {}
+
 for _,k in ipairs(cc) do
 	defaults.profile.spells[k] = true
-	options.args.spells.args[k] = {
+	check_for_cc[k] = true
+	options.args.spells_cc.args[k] = {
 		type = "toggle",
 		name = k,
 	}
@@ -72,7 +203,8 @@ end
 
 for _,k in ipairs(md) do
 	defaults.profile.spells[k] = true
-	options.args.spells.args[k] = {
+	check_for_other[k] = true
+	options.args.spells_other.args[k] = {
 		type = "toggle",
 		name = k,
 	}
@@ -93,12 +225,12 @@ do
 	local iconformat = "%s0|t"
 	local rt1 = _G.COMBATLOG_OBJECT_RAIDTARGET1
 	local rtmask = _G.COMBATLOG_OBJECT_SPECIAL_MASK
-	function geticon(flag)
+	function geticon(flag,sinkoptions)
 		if flag == nil then return end
 		local output
 		local number 
 
-		local sink = db.sinkOptions.sink20OutputSink
+		local sink = sinkoptions.sink20OutputSink
 
 		if band(flag, rtmask) ~= 0 then
 			for i=1,8 do
@@ -122,12 +254,28 @@ do
 end
 
 function Crybaby:OnInitialize()
+	-- savedvars
 	self.db = LibStub("AceDB-3.0"):New("CrybabyDB", defaults, "Default")
 	db = self.db.profile
-	LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("Crybaby", options)
+	if type(db.sinkOptions) == 'table' then
+		-- do some rough conversion of old settings
+		db.sinkOptionsCC.sink20OutputSink = db.sinkOptions.sink20OutputSink
+		db.sinkOptionsOther.sink20OutputSink = db.sinkOptions.sink20OutputSink
+		db.report_cc = db.sinkOptions.sink20OutputSink ~= "None"
+		db.report_other = db.report_cc
+		self:Print("Older settings have been converted; you may want to check the configuration now.")
+		db.sinkOptions = nil
+	end
+
+	-- options
+	LibStub("AceGUI-3.0-Completing-EditBox"):Register("RaidMembers", AUTOCOMPLETE_LIST_TEMPLATES.IN_GROUP)
+	AceConfig:RegisterOptionsTable("Crybaby", options)
 	self.optFrame = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Crybaby", "Crybaby")
-	self:SetSinkStorage(self.db.profile.sinkOptions)
-	LibStub("AceConsole-3.0"):RegisterChatCommand( "crybaby", function() InterfaceOptionsFrame_OpenToCategory("Crybaby") end )
+	LibStub("AceConsole-3.0"):RegisterChatCommand("crybaby", function() InterfaceOptionsFrame_OpenToCategory("Crybaby") end)
+
+	-- savedvars for sink
+	LibSink.SetSinkStorage(tagCC, self.db.profile.sinkOptionsCC)
+	LibSink.SetSinkStorage(tagOther, self.db.profile.sinkOptionsOther)
 end
 
 function Crybaby:OnEnable()
@@ -136,32 +284,42 @@ end
 
 function Crybaby:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, subevent, srcGUID, src, srcFlags, dstGUID, dst, dstFlags, spellID, spell, spellSchool, extraID, extra, extraSchool, auratype)
 	if subevent == "SPELL_AURA_BROKEN_SPELL" or subevent == "SPELL_AURA_BROKEN" or subevent == "SPELL_DISPEL" then 
-		if band(dstFlags, friendly) == 0 then
-			for k,v in ipairs(cc) do
-				if v == spell and db.spells[spell] then
-					local srccolor = getcolor(src) or green
-					local dstcolor = getcolor(dst) or red
-					local srcicon = geticon(srcFlags) or ""
-					local dsticon = geticon(dstFlags) or ""
-					local breaker = src and src or L["Unknown"]
-					local action = extra and (L["act"]:format(extra)) or "" 
-					self:Pour(L["cc"]:format(spell, dsticon, dstcolor, dst, srcicon, srccolor, breaker, action))
-					break
-				end
-			end
+		if band(dstFlags, friendly) ~= 0 then return end   -- CC removed from friendly unit
+		if not check_for_cc[spell] then return end         -- not a CC spell
+		if not db.spells[spell] then return end            -- player doesn't want to see this CC
+		local breaker = src or L["Unknown"]
+		local istank = db.tanks[breaker]
+		local srccolor = getcolor(src) or green
+		local dstcolor = getcolor(dst) or red
+		local srcicon = geticon(srcFlags,db.sinkOptionsCC) or ""
+		local dsticon = geticon(dstFlags,db.sinkOptionsCC) or ""
+		local action = extra and (L["act"]:format(extra)) or "" 
+		local text = L["cc"]:format(spell, dsticon, dstcolor, dst, srcicon, srccolor, breaker, action)
+		if db.all_local then
+			DEFAULT_CHAT_FRAME:AddMessage(text)
+		end
+		if istank then
+			return
+		end
+		if db.report_cc then
+			LibSink.Pour(tagCC,text)
 		end
 	elseif subevent == "SPELL_CAST_SUCCESS" then
-		if band(dstFlags, outsider) == 0 then
-			for k,v in ipairs(md) do
-				if v == spell and db.spells[spell] then
-					local target = dst or L["Unknown"]
-					local srccolor = getcolor(src) or red
-					local dstcolor = getcolor(dst) or green
-					local srcicon = geticon(srcFlags) or ""
-					local dsticon = geticon(dstFlags) or ""
-					self:Pour(L["md"]:format(srcicon, srccolor, src, spell, dsticon, dstcolor, target))
-				end
-			end
+		if band(dstFlags, outsider) ~= 0 then return end   -- caster not in our group
+		if not check_for_other[spell] then return end      -- not an "interesting" spell
+		if not db.spells[spell] then return end            -- player doesn't want to see this spell
+		local caster = src or L["Unknown"]
+		local target = dst or L["Unknown"]
+		local srccolor = getcolor(src) or red
+		local dstcolor = getcolor(dst) or green
+		local srcicon = geticon(srcFlags,db.sinkOptionsOther) or ""
+		local dsticon = geticon(dstFlags,db.sinkOptionsOther) or ""
+		local text = L["md"]:format(srcicon, srccolor, caster, spell, dsticon, dstcolor, target)
+		if db.all_local then
+			DEFAULT_CHAT_FRAME:AddMessage(text)
+		end
+		if db.report_cc then
+			LibSink.Pour(tagOther,text)
 		end
 	end
 end
