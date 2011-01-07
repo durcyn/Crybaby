@@ -227,7 +227,7 @@ do
 	local rtmask = _G.COMBATLOG_OBJECT_SPECIAL_MASK
 	function geticon(flag,sinkoptions)
 		if flag == nil then return end
-		local output
+		local localoutput, otheroutput = "", ""
 		local number 
 
 		local sink = sinkoptions.sink20OutputSink
@@ -239,17 +239,18 @@ do
 				if mark then number = i end
 			end
 		end
+		if not number then return end
 
-		if number and sink ~= "Channel" then
-			local icon = rt1 * (number ^ (number - 1))
-			local path = iconlist[number]
-			output = iconformat:format(path)
-		elseif number then
-			output = ("{rt%s}"):format(number)
+		-- Local chat window can't use {rtX} notation
+		local icon = rt1 * (number ^ (number - 1))
+		local path = iconlist[number]
+		localoutput = iconformat:format(path)
+		if sink ~= "Channel" then
+			otheroutput = localoutput
 		else
-			output = ""
+			otheroutput = ("{rt%d}"):format(number)
 		end
-		return output
+		return localoutput, otheroutput
 	end
 end
 
@@ -291,18 +292,17 @@ function Crybaby:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, subevent, srcGUID
 		local istank = db.tanks[breaker]
 		local srccolor = getcolor(src) or green
 		local dstcolor = getcolor(dst) or red
-		local srcicon = geticon(srcFlags,db.sinkOptionsCC) or ""
-		local dsticon = geticon(dstFlags,db.sinkOptionsCC) or ""
+		local srciconL,srciconO = geticon(srcFlags,db.sinkOptionsCC)
+		local dsticonL,dsticonO = geticon(dstFlags,db.sinkOptionsCC)
 		local action = extra and (L["act"]:format(extra)) or "" 
-		local text = L["cc"]:format(spell, dsticon, dstcolor, dst, srcicon, srccolor, breaker, action)
 		if db.all_local then
-			DEFAULT_CHAT_FRAME:AddMessage(text)
+			DEFAULT_CHAT_FRAME:AddMessage(L["cc"]:format(spell, dsticonL or "", dstcolor, dst, srciconL or "", srccolor, breaker, action))
 		end
 		if istank then
 			return
 		end
 		if db.report_cc then
-			LibSink.Pour(tagCC,text)
+			LibSink.Pour(tagCC,L["cc"]:format(spell, dsticonO or "", dstcolor, dst, srciconO or "", srccolor, breaker, action))
 		end
 	elseif subevent == "SPELL_CAST_SUCCESS" then
 		if band(dstFlags, outsider) ~= 0 then return end   -- caster not in our group
@@ -312,14 +312,13 @@ function Crybaby:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, subevent, srcGUID
 		local target = dst or L["Unknown"]
 		local srccolor = getcolor(src) or red
 		local dstcolor = getcolor(dst) or green
-		local srcicon = geticon(srcFlags,db.sinkOptionsOther) or ""
-		local dsticon = geticon(dstFlags,db.sinkOptionsOther) or ""
-		local text = L["md"]:format(srcicon, srccolor, caster, spell, dsticon, dstcolor, target)
+		local srciconL,srciconO = geticon(srcFlags,db.sinkOptionsCC)
+		local dsticonL,dsticonO = geticon(dstFlags,db.sinkOptionsCC)
 		if db.all_local then
-			DEFAULT_CHAT_FRAME:AddMessage(text)
+			DEFAULT_CHAT_FRAME:AddMessage(L["md"]:format(srciconL or "", srccolor, caster, spell, dsticonL or "", dstcolor, target))
 		end
 		if db.report_cc then
-			LibSink.Pour(tagOther,text)
+			LibSink.Pour(tagOther,L["md"]:format(srciconO or "", srccolor, caster, spell, dsticonO or "", dstcolor, target))
 		end
 	end
 end
