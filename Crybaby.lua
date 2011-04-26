@@ -139,7 +139,7 @@ function Crybaby:OnEnable()
 	self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 end
 
-function Crybaby:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, subevent, srcGUID, src, srcFlags, dstGUID, dst, dstFlags, spellID, spell, spellSchool, extraID, extra, extraSchool, auratype)
+function Crybaby:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, subevent, hideCaster, srcGUID, src, srcFlags, dstGUID, dst, dstFlags, spellID, spell, spellSchool, extraID, extra, extraSchool, auratype)
 	if subevent == "SPELL_AURA_BROKEN_SPELL" or subevent == "SPELL_AURA_BROKEN" or subevent == "SPELL_DISPEL" then 
 		if band(dstFlags, friendly) == 0 then
 			for k,v in ipairs(cc) do
