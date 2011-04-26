@@ -18,6 +18,7 @@ libs\AceEvent-3.0\AceEvent-3.0.xml
 libs\AceBucket-3.0\AceBucket-3.0.xml
 libs\AceLocale-3.0\AceLocale-3.0.xml
 libs\LibSink-2.0\lib.xml
+libs\AceGUI-3.0-Completing-EditBox\AceGUI-3.0-Completing-EditBox.lua
 #@end-no-lib-strip@
 
 enUS.lua
