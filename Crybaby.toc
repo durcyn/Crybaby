@@ -2,7 +2,7 @@
 ## Title: Crybaby
 ## Notes: Complain about crowd control breaks.
 ## Author: durcyn
-## OptionalDeps: Ace3, LibSink-2.0
+## OptionalDeps: Ace3, AceGUI-3.0-Completing-EditBox, LibSink-2.0
 ## SavedVariables: CrybabyDB
 
 #@no-lib-strip@
