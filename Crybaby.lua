@@ -1,4 +1,3 @@
-local _G = getfenv(0)
 local LibStub = _G.LibStub
 local Crybaby = LibStub("AceAddon-3.0"):NewAddon("Crybaby", "AceConsole-3.0", "AceEvent-3.0")
 local L = LibStub("AceLocale-3.0"):GetLocale("Crybaby")
@@ -8,7 +7,6 @@ local db
 
 local band = _G.bit.band
 local pairs, ipairs = _G.pairs, _G.ipairs
-local format = _G.string.format
 local twipe = _G.table.wipe
 
 local GetSpellInfo = _G.GetSpellInfo
@@ -213,44 +211,61 @@ end
 
 local getcolor, geticon
 do
+	local color_hexes = {}
 	function getcolor(name)
 		if type(name) ~= 'string' then return end
 		local _, class = UnitClass(name)
-		local color = class and _G["RAID_CLASS_COLORS"][class]
-		local hex = color and format("|cff%02x%02x%02x", color.r*255, color.g*255, color.b*255)
-		return hex
+		if not class then return end
+		if not color_hexes[class] then
+			local color = _G["RAID_CLASS_COLORS"][class]
+			color_hexes[class] = ("|cff%02x%02x%02x"):format(color.r*255, color.g*255, color.b*255)
+		end
+		return color_hexes[class]
 	end
 
-	local iconlist = _G.ICON_LIST
-	local iconformat = "%s0|t"
-	local rt1 = _G.COMBATLOG_OBJECT_RAIDTARGET1
-	local rtmask = _G.COMBATLOG_OBJECT_SPECIAL_MASK
 	function geticon(flag,sinkoptions)
-		if flag == nil then return end
-		local localoutput, otheroutput = "", ""
-		local number 
+		-- This is a preformatted version of CombatLog_String_GetIcon() from
+		-- the Blizzard_CombatLog module.  The module must be loaded before the
+		-- object/icon variables can be used, but if we do it too early then
+		-- our own initialization breaks.  Wait until we need it the first time,
+		-- then replace this setup function with a faster one using upvalues.
+		-- This should not be needed after the ##LoadWith change, but is safer.
+		local icons = {}
+		for i=1,#_G.ICON_LIST do
+			local iconbit = _G['COMBATLOG_OBJECT_RAIDTARGET'..i]
+			local icon = _G['COMBATLOG_ICON_RAIDTARGET'..i]
+			icons[iconbit] = {
+				iconString = TEXT_MODE_A_STRING_DEST_ICON:format (iconbit, icon),
+				icon       = icon,
+				rt         = i,
+			}
+		end
+		local rtmask = _G.COMBATLOG_OBJECT_RAIDTARGET_MASK
 
-		local sink = sinkoptions.sink20OutputSink
+		local function realgeticon(flag,sinkoptions)
+			--print("flag", ("%x"):format(flag))
+			if flag == nil then return end
+			local localoutput, otheroutput = "", ""
+			local sink = sinkoptions.sink20OutputSink
 
-		if band(flag, rtmask) ~= 0 then
-			for i=1,8 do
-				local mask = rt1 * (2 ^ (i - 1))
-				local mark = (band(flag, mask) == mask)
-				if mark then number = i end
+			local icon = icons[band(flag,rtmask)]
+			if not icon then return end
+
+			-- Local window can't use {rtX} notation; chat channels can't use
+			-- embedded texture paths.
+			localoutput = icon.iconString   -- |Hicon:%d:dest|h%s|h
+			--localoutput = icon.icon         -- |T....:0|t
+			if sink ~= "Channel" then
+				otheroutput = localoutput
+			else
+				otheroutput = ("{rt%d}"):format(icon.rt)
 			end
+			return localoutput, otheroutput
 		end
-		if not number then return end
 
-		-- Local chat window can't use {rtX} notation
-		local icon = rt1 * (number ^ (number - 1))
-		local path = iconlist[number]
-		localoutput = iconformat:format(path)
-		if sink ~= "Channel" then
-			otheroutput = localoutput
-		else
-			otheroutput = ("{rt%d}"):format(number)
-		end
-		return localoutput, otheroutput
+		-- Replace, and use it.
+		geticon = realgeticon
+		return realgeticon(flag,sinkoptions)
 	end
 end
 
@@ -292,8 +307,8 @@ function Crybaby:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, subevent, hideCas
 		local istank = db.tanks[breaker]
 		local srccolor = getcolor(src) or green
 		local dstcolor = getcolor(dst) or red
-		local srciconL,srciconO = geticon(srcFlags,db.sinkOptionsCC)
-		local dsticonL,dsticonO = geticon(dstFlags,db.sinkOptionsCC)
+		local srciconL,srciconO = geticon(srcRaidFlags,db.sinkOptionsCC)
+		local dsticonL,dsticonO = geticon(dstRaidFlags,db.sinkOptionsCC)
 		local action = extra and (L["act"]:format(extra)) or "" 
 		if db.all_local then
 			DEFAULT_CHAT_FRAME:AddMessage(L["cc"]:format(spell, dsticonL or "", dstcolor, dst, srciconL or "", srccolor, breaker, action))
@@ -312,8 +327,8 @@ function Crybaby:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, subevent, hideCas
 		local target = dst or L["Unknown"]
 		local srccolor = getcolor(src) or red
 		local dstcolor = getcolor(dst) or green
-		local srciconL,srciconO = geticon(srcFlags,db.sinkOptionsCC)
-		local dsticonL,dsticonO = geticon(dstFlags,db.sinkOptionsCC)
+		local srciconL,srciconO = geticon(srcRaidFlags,db.sinkOptionsCC)
+		local dsticonL,dsticonO = geticon(dstRaidFlags,db.sinkOptionsCC)
 		if db.all_local then
 			DEFAULT_CHAT_FRAME:AddMessage(L["md"]:format(srciconL or "", srccolor, caster, spell, dsticonL or "", dstcolor, target))
 		end

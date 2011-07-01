@@ -2,6 +2,7 @@
 ## Title: Crybaby
 ## Notes: Complain about crowd control breaks.
 ## Author: durcyn
+## LoadWith: Blizzard_CombatLog
 ## OptionalDeps: Ace3, AceGUI-3.0-Completing-EditBox, LibSink-2.0
 ## SavedVariables: CrybabyDB
 
