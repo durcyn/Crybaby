@@ -25,6 +25,7 @@ local cc = {
 	(GetSpellInfo(9484)),  -- 9484  Shackle Undead
 	(GetSpellInfo(2637)),  -- 2637  Hibernate
 	(GetSpellInfo(3355)),  -- 3355  Freezing Trap
+	(GetSpellInfo(5782)),  -- 5782  Fear
 	(GetSpellInfo(6358)),  -- 6358  Seduction
 	(GetSpellInfo(6770)),  -- 6770  Sap
 	(GetSpellInfo(20066)), -- 20066 Repentance
@@ -316,7 +317,7 @@ function Crybaby:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, subevent, hideCas
 		if istank then
 			return
 		end
-		if db.report_cc then
+		if db.report_cc and not (db.all_local == true and db.sinkOptionsCC.sink20OutputSink == "ChatFrame") then
 			LibSink.Pour(tagCC,L["cc"]:format(spell, dsticonO or "", dstcolor, dst, srciconO or "", srccolor, breaker, action))
 		end
 	elseif subevent == "SPELL_CAST_SUCCESS" then
@@ -332,7 +333,7 @@ function Crybaby:COMBAT_LOG_EVENT_UNFILTERED(event, timestamp, subevent, hideCas
 		if db.all_local then
 			DEFAULT_CHAT_FRAME:AddMessage(L["md"]:format(srciconL or "", srccolor, caster, spell, dsticonL or "", dstcolor, target))
 		end
-		if db.report_cc then
+		if db.report_other and not (db.all_local == true and db.sinkOptionsOther.sink20OutputSink == "ChatFrame") then
 			LibSink.Pour(tagOther,L["md"]:format(srciconO or "", srccolor, caster, spell, dsticonO or "", dstcolor, target))
 		end
 	end
